@@ -3,6 +3,7 @@ import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), ".../..")))
 import asyncio
 import signal
+import json
 import logging
 from dotenv import load_dotenv
 from agents import Agent, Runner, RunHooks, ModelSettings
@@ -28,52 +29,91 @@ class TariffRunContext:
 
 class MyRunHooks(RunHooks):
     async def on_agent_start(self, ctx, agent):
-        logging.info(f"[HOOK] Agent {agent.name} started with input: {ctx.context}")
-        
-    async def on_agent_end(self, ctx, agent, output):
-        logging.info(f"[HOOK] Agent {agent.name} ended with output: {output}")
-        
-    async def on_tool_start(self, ctx, agent, tool):
-        logging.info(f"[HOOK] Tool {tool.name} about to run with args: {ctx.tool_arguments}")
-        
-    async def on_tool_end(self, ctx, agent, tool, result):
-        logging.info(f"[HOOK] Tool {tool.name} finished with result: {result}")
+        logging.info(f"\n [AGENT STARTED] {agent.name}")
+        logging.info(f"Input Context: {ctx.context}")
 
+    async def on_agent_end(self, ctx, agent, output):
+        logging.info(f"\n[AGENT COMPLETED] {agent.name}")
+        try:
+            logging.info(f"Final Output:\n{json.dumps(output, indent=2)}")
+        except Exception:
+            logging.info(f" Final Output: {output}")
+
+    async def on_tool_start(self, ctx, agent, tool):
+        logging.info(f"\n [TOOL START] {tool.name}")
+        logging.info(f" Tool Input Args:\n{json.dumps(ctx.tool_arguments, indent=2)}")
+
+    async def on_tool_end(self, ctx, agent, tool, result):
+        logging.info(f"[TOOL FINISHED] {tool.name}")
+        try:
+            logging.info(f"Tool Output:\n{json.dumps(result, indent=2)}")
+        except Exception:
+            logging.info(f"Tool Output: {result}")
+
+    async def on_tool_error(self, ctx, agent, tool, error):
+        logging.error(f"[TOOL ERROR] {tool.name}: {error}")
+        
+        
+        
 
 agent = Agent(
     name="TariffWorkflowAgent",
     instructions=(
         """
         SYSTEM PROMPT:
-        You are a Trade Duty & Tariff Intelligence Agent.
+        You are a **Trade Duty & Tariff Intelligence Agent**.
 
-        Available Tools:
-        1. calculate_tariff_for_countries() – Calculate base tariff & program-based duty.
-        2. calculate_total_cost() – Compute total landed cost (with MPF/HMF fees).
-        3. addtional_tariff_check() – Identify special tariffs, exclusions, or reciprocal duties from policy docs.
+        ---
+        **Your Purpose:**
+        Accurately calculate import tariffs, identify exclusions, and compute the final landed cost for a product.
 
-        Workflow:
-        - Step 1: User provides HTS payload, country, transport mode, and dates.
-        - Step 2: Use calculate_tariff_for_countries() for base tariff.
-        - Step 3: Use addtional_tariff_check() for Trump 2.0 and other policy-based adjustments.
-        - Step 4: Combine all and compute final cost using calculate_total_cost().
-        - Step 5: Return a clear, structured tariff breakdown.
-        Gaurdrails:
-        - Always validate inputs before calculations.
-        - Handle exceptions gracefully, providing informative error messages.
-        - Ensure compliance with the latest trade regulations and policies.
-        - Prioritize accuracy and clarity in all responses.
-        - Do not make up rates or fees; always use tool outputs.
-        - Do not include or use any variable regarding file processing image_url, file_id, thumbnail, embedding, vector, doc_source.
+        ---
+        **Available Tools:**
+        1️1- `calculate_tariff_for_countries()` → Calculate base tariff & program-based duty.  
+        2️2- `addtional_tariff_check()` → Identify special tariffs, exclusions, or reciprocal duties from policy documents (e.g. Trump 2.0).  
+        3️3- `calculate_total_cost()` → Compute final landed cost including MPF and HMF fees.  
+
+        ---
+        **Workflow (MUST follow strictly):**
+        Step 1: Start with `calculate_tariff_for_countries()` using the provided HTS code, description, and country.  
+        - Return the result as JSON under `"base_tariff"`.
+
+        Step 2: Run `addtional_tariff_check()` using the same HTS + country + product description.  
+        - Return any matching exclusions or special tariffs as `"additional_tariffs"`.
+
+        Step 3: Call `calculate_total_cost()` to compute the total landed cost, combining base tariff, MPF, and HMF.  
+        - Return as `"total_cost_breakdown"`.
+
+        Step 4: Combine all three steps and output a **single JSON object**:
+        ```json
+        {
+            "base_tariff": {},
+            "additional_tariffs": {},
+            "total_cost_breakdown": {},
+            "potential_exclusion_codes": []
+        }
+        ```
+
+        ---
+        **Rules & Guardrails:**
+        -  Validate input fields before using tools.
+        -  Never invent tariff rates or exclusions; rely only on tool results.
+        -  Never include or use any fields related to file, image_url, embedding, doc_source, or vector.
+        -  Output must always be valid JSON (machine-readable).
+        -  If a tool fails or returns None, log it and continue with the next one.
         """
     ),
+    
     tools=[
         calculate_tariff_for_countries,
-        calculate_total_cost,
-        addtional_tariff_check
+        addtional_tariff_check,
+        calculate_total_cost
     ],
     model="gpt-4o",
-    model_settings=ModelSettings(temperature=0.7, max_tokens=3000),
+    model_settings=ModelSettings(
+        temperature=0.4,
+        max_tokens=5000
+    ),
 )
 
 # running = True

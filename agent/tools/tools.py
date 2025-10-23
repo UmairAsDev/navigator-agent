@@ -95,6 +95,7 @@ class PayloadItem(BaseModel):
     general_rate_of_duty: Optional[str]
     text: Optional[str]
 
+
 class CalculateTariff(BaseModel):
     payload: List[PayloadItem]
     country: str
@@ -104,13 +105,27 @@ class CalculateTariff(BaseModel):
 
 
 @function_tool(strict_mode=False)
-async def calculate_tariff_for_countries(request: CalculateTariff) -> str:
+async def calculate_tariff_for_countries(request: CalculateTariff) -> dict:
     """Calculates the tariff for imported goods based on specific criteria."""
-    calculator = TariffCalculation(**request.dict())
-    return await calculator.calculate_tariff()#type:ignore
+    try:
+        payload = request.payload[0].dict()
+        print(f"payload: {payload}")
+        calculator = TariffCalculation(
+            payload=payload,
+            country=request.country,
+            base_cost=request.base_cost,
+            mode_of_transport=request.mode_of_transport,
+            entry_date=request.entry_date,
+        )
+        result = await calculator.calculate_tariff()
+        return {"country_tool_result": result}
+    except Exception as e:
+        logging.error(f"calculate_tariff_for_countries failed: {e}")
+        return {"error": str(e)}
 
 
 class CostBreakdown(BaseModel):
+    payload: Optional[List[PayloadItem]] = None  
     country: str
     base_cost: float
     mode_of_transport: List[str]
@@ -119,10 +134,21 @@ class CostBreakdown(BaseModel):
 
 @function_tool(strict_mode=False)
 async def calculate_total_cost(request: CostBreakdown) -> dict:
-    """Computes the total cost of imported goods, including applicable fees and duty."""
-    calculator = TariffCalculation(**request.dict())
-    return await calculator.calculate_total_cost()
+    """Computes total landed cost, including MPF/HMF fees and duty."""
+    try:
+        payload = request.payload[0].dict() if request.payload else {}
 
+        calculator = TariffCalculation(
+            payload=payload,
+            country=request.country,
+            base_cost=request.base_cost,
+            mode_of_transport=request.mode_of_transport,
+            entry_date=request.entry_date,
+        )
+        return await calculator.calculate_total_cost()
+    except Exception as e:
+        logging.error(f"calculate_total_cost failed: {e}")
+        return {"error": str(e)}
 
 class AdvanceTariff(BaseModel):
     query :str 
