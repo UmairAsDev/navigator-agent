@@ -1,0 +1,15 @@
+sqlalchemy
+asyncio
+asyncpg
+alembic
+python-dotenv
+psycopg2-binary
+qdrant-client
+sentence-transformers
+unstructured[all-docs]
+pdfminer
+numpy==2.1.0
+fastembed>=0.3.2
+onnxruntime>=1.17.0
+requests
+pandas

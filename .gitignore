@@ -1,0 +1,31 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Environment variables
+.env
+
+# Data Sources
+Data_source/
+data/
+alembic/
+alembic.ini
+
+#uv.lock
+uv.lock
+
+*.marscode
+
+#pdfs
+pdfs/
+*.pdf
+
+#qdrant_backups
+qdrant_backups/
