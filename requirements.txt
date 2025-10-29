@@ -16,3 +16,4 @@ pandas
 openai
 openai-agents
 fastapi
+google-generativeai
