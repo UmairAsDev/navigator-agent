@@ -9,8 +9,8 @@ import time
 # --- Configuration ---
 API_KEY = os.getenv("GOOGLE_API_KEY", "")
 
-PDF_FILE_PATH = "pdf_processor/pdfs/Trump 2.0 tariff tracker _ Trade Compliance Resource Hub.pdf"
-OUTPUT_JSON_FILE = "tariff_data_from_gemini.json"
+PDF_FILE_PATH = "Data_source/Tariff Tracker/Trump 2.0 tariff tracker _ Trade Compliance Resource Hub.pdf"
+OUTPUT_JSON_FILE = "pdf_processing/trump_tariff_tracker.json"
 MODEL_NAME = "gemini-2.5-pro" 
 
 SYSTEM_PROMPT = """
@@ -28,16 +28,80 @@ Example json format that should be produced at the end:
 
 {
   "Country_Specific_Tariffs": {
-    "China": [
+    "Updated:" [October 28, 2025 at 8:50 AM ET]
+    "Litigation Update":[
       {
-        "Type_Status": "Trade Deal Reciprocal: Delayed until Nov. 10 (effective Aug. 11, 2025)",
-        "Ad_Valorem_Rate": "34%",
-        "Exemptions_Notes": "Goods from China (including Hong Kong and Macau)...",
-        "Announced_Countermeasures": "Implemented 10–15% tariffs on certain U.S.-origin goods..."
+        "Date": "Sept. 9, 2025"
+        "Content:": "On August 29, the Court of Appeals for the Federal Circuit (1) affirmed the Court of International Trade’s (CIT) holding that “fentanyl” and reciprocal tariffs exceed the President’s authority under the International Emergency Economic Powers Act; (2) affirmed the CIT’s grant of declaratory relief that the “fentanyl” and reciprocal tariff executive orders are “invalid as contrary to law; and (3) vacated the CIT’s permanent injunction that universally enjoined the tariffs’ enforcement, remanding for the CIT to further evaluate the propriety and scope of injunctive relief in light of the Supreme Court’s decision in Trump v. CASA, Inc., 145 S. Ct. 2540 (2025). The Federal Circuit stayed its ruling pending further appeal by the government. The Supreme Court will hear oral argument in the pending appeal on November 5."
+      }
+    ]
+    "Mexico": [
+      {
+        "Type_Status": {
+          "Reciprocal": "Exempt",
+          "Effective Date:" "April 5, 2025"
+        },
+        "Ad_Valorem_Rate": ",
+        "Exemptions_Notes": "",
+        "Announced_Countermeasures": ""
+      },
+      {
+        "Type_Status": {
+          "Fentanyl": "Implemented",
+          "Effective Date:" "March 4, 2025",
+          "Adjusted Date": "March 6, 2025"
+        },
+        "Ad_Valorem_Rate": {
+          Rates: [
+            {
+              "Rate": "0%",
+              "Scope": "For goods entered duty-free under the USMCA"
+            },
+            {
+              "Rate": "10%",
+              "Scope": "For potash"
+            },
+            {
+              "Rate": "25%",
+              "Scope": " For all other product"
+            }
+          ]
+        },
+        "Exemptions_Notes": {
+          "Status": "Threatened",
+          "Content": " Rate increase from 25% to 30%",
+          "Date": "July 12, 2025",
+          "Details": {
+            References:[
+                {
+                "Executive Order": "Exec. Order 14289",
+                "Date": "Apr. 29, 2025"
+                },
+                {
+                "Executive Order": "Exec. Order 14232",
+                "Date": "March 6, 2025"
+                },
+                {
+                "Executive Order": "Exec. Order 14198",
+                "Date": "Feb. 3, 2025"
+                },
+                {
+                "Executive Order": "Exec. Order 14194",
+                "Date": "Feb. 1, 2025"
+                }
+            ]
+          }
+        },
+        "Announced_Countermeasures": ""
       }
     ]
   }
 }
+
+The above is just the sample example for Mexico from Country-Specific Table. I provided you this example so that you can determine how to extract data from the pdf. I didn't provide sample for product-specific table but you yourself can determine it by looking the above example.
+Now edit the above initial prompt in such a way that while generating the final JSON file it contains universal format for each individual sections, like same format for country-specific tariffs, same format for product-specific tariffs, same format for Reciprocal Tariff Exceptions, same format for Tariff Stacking, same format for Updates and relevant Publications.
+
+So that I can use the data from this updated JSON efficiently and easily.
 """
 
 # --- Helper Functions ---
